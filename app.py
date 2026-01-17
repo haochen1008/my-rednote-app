@@ -33,7 +33,7 @@ def generate_full_content(text, platform, style):
     res = requests.post(API_URL, headers=headers, json=payload)
     return res.json()['choices'][0]['message']['content']
 
-st.title("🏙️ 房产搬运全能王")
+st.title("🏙️ Hao Harbour")
 
 # 第一步：输入
 desc_input = st.text_area("第一步：粘贴 Rightmove 描述", height=200, placeholder="粘贴 Description...")
