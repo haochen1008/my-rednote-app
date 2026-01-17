@@ -6,19 +6,21 @@ st.set_page_config(page_title="Hao Harbour", layout="wide")
 API_KEY = "sk-d99a91f22bf340139a335fb3d50d0ef5"
 API_URL = "https://api.deepseek.com/chat/completions"
 
-def generate_full_content(text, platform, style):
+def generate_pro_content(text, platform, style):
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
     
-    # 构建超级 Prompt
+    # 核心指令优化：强化“简单明了”逻辑
     prompt = f"""
-    你是一个深耕英国房产的自媒体专家。请根据以下内容生成{platform}文案。
-    风格偏好：{style}
+    你是一个深耕英国房产的营销专家。请根据以下内容生成{platform}文案。
+    侧重风格：{style}
     
-    要求：
-    1. 生成3个候选标题：[精确信息型]、[情绪吸引型]、[留学生专用型]。
-    2. 提取并生成5-8个热门话题Tag。
-    3. 文案内容要精准提取卖点：交通、周边、内部装修。
-    4. 自动换算周租金(如果是月租除以4.33)。
+    【重要指令】：
+    1. 标题：生成3个候选标题，每个严格限制在20个字符以内（含Emoji），要吸睛且简短。
+    2. 文案结构（请按此顺序排列）：
+       - [⚡️ 简单明了版]：必须放在最前面。用极简文字列出：邮编/地段、房型、租金(PW/PCM)、入住时间、周边大学。
+       - [✨ 详细种草版]：更具感染力的描述。如果原文内容简陋，请根据地段关键词合理脑补卖点（如周边超市、交通线路、公寓配套）。
+    3. 标签：将热门标签（#...）直接放在全文最后。
+    4. 标题后面请注明：(复制到小红书标题栏)。
     
     原文内容：
     {text}
@@ -34,35 +36,51 @@ def generate_full_content(text, platform, style):
     return res.json()['choices'][0]['message']['content']
 
 st.title("🏙️ Hao Harbour")
+st.caption("已更新：加入‘简单明了’调性选择 | 标题严格限20字 | 自动补全简陋描述")
 
 # 第一步：输入
-desc_input = st.text_area("第一步：粘贴 Rightmove 描述", height=200, placeholder="粘贴 Description...")
+desc_input = st.text_area("粘贴 Rightmove 描述（哪怕只有一句话）", height=150, placeholder="Paste description here...")
 
 # 第二步：选择
 col1, col2 = st.columns(2)
 with col1:
     platform = st.selectbox("发布平台", ["小红书", "朋友圈", "抖音脚本"])
 with col2:
-    style = st.selectbox("侧重风格", ["吸引眼球", "专业严谨", "温馨生活"])
+    # 这一行已修正，加入了“简单明了”选项
+    style = st.selectbox("文案调性", ["⚡️ 简单明了", "🔥 爆款吸睛", "🏠 温馨种草", "📊 专业客观"])
 
 # 第三步：生成
-if st.button("🚀 一键生成全套内容"):
+if st.button("🚀 瞬间生成全套文案"):
     if not desc_input:
-        st.warning("请先粘贴描述内容")
+        st.warning("请先粘贴描述内容哦！")
     else:
-        with st.spinner('AI 正在为您定制全套文案...'):
+        with st.spinner('AI 正在为您定制文案...'):
             try:
-                result = generate_full_content(desc_input, platform, style)
-                st.success("生成完毕！")
+                result = generate_pro_content(desc_input, platform, style)
+                st.markdown("---")
+                st.subheader("📋 文案生成结果")
                 
-                # 分开展示结果
-                st.markdown("### ✨ 生成结果")
-                st.write(result)
+                # 引导语
+                st.info("点击下方文本框右上角的图标即可【一键复制全文】")
                 
-                st.info("💡 小贴士：你可以直接复制以上内容到笔记应用中。")
+                # 使用 st.code 实现一键复制
+                st.code(result, language="markdown")
+                
+                # 预览区域
+                with st.expander("👀 预览文字排版"):
+                    st.write(result)
+                
                 st.balloons()
-            except:
-                st.error("生成失败，请确认 DeepSeek 余额或网络连接。")
+            except Exception as e:
+                st.error("生成出错，可能由于API连接问题或余额波动，请稍后再试。")
 
-st.markdown("---")
-st.caption("建议：手动粘贴描述文字最省钱，识图功能仅在无法复制时使用。")
+# 样式美化
+st.markdown("""
+<style>
+    .stCodeBlock {
+        background-color: #f8f9fa !important;
+        border: 1px solid #e0e0e0;
+        border-radius: 10px;
+    }
+</style>
+""", unsafe_allow_html=True)
