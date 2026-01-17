@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 
-st.set_page_config(page_title="房产搬运全能王", layout="wide")
+st.set_page_config(page_title="Hao Harbour", layout="wide")
 
 API_KEY = "sk-d99a91f22bf340139a335fb3d50d0ef5"
 API_URL = "https://api.deepseek.com/chat/completions"
