@@ -1,86 +1,68 @@
 import streamlit as st
 import requests
-import base64
 
-# 1. 页面配置
-st.set_page_config(page_title="房产全能搬运助手", layout="wide")
+st.set_page_config(page_title="房产搬运全能王", layout="wide")
 
-# 配置你的 DeepSeek Key (建议充值2元后使用)
 API_KEY = "sk-d99a91f22bf340139a335fb3d50d0ef5"
+API_URL = "https://api.deepseek.com/chat/completions"
 
-def encode_image(uploaded_file):
-    return base64.b64encode(uploaded_file.getvalue()).decode('utf-8')
-
-def process_with_ai(content, mode, platform):
-    url = "https://api.deepseek.com/chat/completions"
+def generate_full_content(text, platform, style):
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
     
-    # 根据平台调整指令
-    prompts = {
-        "小红书": "写一篇爆款小红书笔记，多用Emoji，分段清晰，带10个标签，语气要‘家人们谁懂啊’。",
-        "朋友圈": "写一段精炼的朋友圈文案，语气专业且亲切，适合私域转化，控制在150字以内。",
-        "抖音": "写一段带节奏感的短视频脚本。包含：【画面描述】、【旁白台词】、【热门BGM建议】。"
-    }
+    # 构建超级 Prompt
+    prompt = f"""
+    你是一个深耕英国房产的自媒体专家。请根据以下内容生成{platform}文案。
+    风格偏好：{style}
     
-    selected_prompt = prompts.get(platform, "翻译并润色文案")
+    要求：
+    1. 生成3个候选标题：[精确信息型]、[情绪吸引型]、[留学生专用型]。
+    2. 提取并生成5-8个热门话题Tag。
+    3. 文案内容要精准提取卖点：交通、周边、内部装修。
+    4. 自动换算周租金(如果是月租除以4.33)。
     
-    # 如果是文本模式
-    if mode == "text":
-        messages = [{"role": "user", "content": f"{selected_prompt}\n内容如下：\n{content}"}]
-    # 如果是图片模式 (注意：DeepSeek 目前主模型需要使用 vision 模型才能识图)
-    # 这里我们采用通用的多模态逻辑
-    else:
-        messages = [{
-            "role": "user",
-            "content": [
-                {"type": "text", "text": f"请识别这张截图里的房源描述，并直接按照这个要求生成文案：{selected_prompt}"},
-                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{content}"}}
-            ]
-        }]
-
+    原文内容：
+    {text}
+    """
+    
     payload = {
-        "model": "deepseek-chat", # 提示：DeepSeek 识图建议使用 deepseek-vision 模型
-        "messages": messages,
-        "max_tokens": 1000
+        "model": "deepseek-chat",
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.8
     }
     
-    response = requests.post(url, headers=headers, json=payload)
-    return response.json()['choices'][0]['message']['content']
+    res = requests.post(API_URL, headers=headers, json=payload)
+    return res.json()['choices'][0]['message']['content']
 
-# 2. 界面设计
-st.title("🏠 房产全能搬运助手")
+st.title("🏙️ 房产搬运全能王")
+
+# 第一步：输入
+desc_input = st.text_area("第一步：粘贴 Rightmove 描述", height=200, placeholder="粘贴 Description...")
+
+# 第二步：选择
+col1, col2 = st.columns(2)
+with col1:
+    platform = st.selectbox("发布平台", ["小红书", "朋友圈", "抖音脚本"])
+with col2:
+    style = st.selectbox("侧重风格", ["吸引眼球", "专业严谨", "温馨生活"])
+
+# 第三步：生成
+if st.button("🚀 一键生成全套内容"):
+    if not desc_input:
+        st.warning("请先粘贴描述内容")
+    else:
+        with st.spinner('AI 正在为您定制全套文案...'):
+            try:
+                result = generate_full_content(desc_input, platform, style)
+                st.success("生成完毕！")
+                
+                # 分开展示结果
+                st.markdown("### ✨ 生成结果")
+                st.write(result)
+                
+                st.info("💡 小贴士：你可以直接复制以上内容到笔记应用中。")
+                st.balloons()
+            except:
+                st.error("生成失败，请确认 DeepSeek 余额或网络连接。")
+
 st.markdown("---")
-
-tab1, tab2 = st.tabs(["📸 截图识别", "✍️ 手动粘贴"])
-
-with tab1:
-    st.subheader("上传 Rightmove 描述截图")
-    img_file = st.file_uploader("支持手机截图或网页长图", type=['png', 'jpg', 'jpeg'])
-    if img_file:
-        st.image(img_file, width=300, caption="已上传截图")
-
-with tab2:
-    st.subheader("手动粘贴文本")
-    text_input = st.text_area("在此粘贴 Description...", height=200)
-
-st.markdown("---")
-st.subheader("选择发布平台")
-platform = st.segmented_control("发布到：", ["小红书", "朋友圈", "抖音"], default="小红书")
-
-if st.button("🚀 开始魔法转换"):
-    with st.spinner('AI 正在全力处理中...'):
-        try:
-            if img_file: # 图片模式
-                base64_img = encode_image(img_file)
-                result = process_with_ai(base64_img, "image", platform)
-            elif text_input: # 文本模式
-                result = process_with_ai(text_input, "text", platform)
-            else:
-                st.warning("请先上传图片或输入文字内容")
-                st.stop()
-            
-            st.success(f"✨ {platform} 版本已生成！")
-            st.markdown(result)
-            st.balloons()
-        except Exception as e:
-            st.error(f"生成失败：请检查 DeepSeek 余额或 Key 是否正确。")
+st.caption("建议：手动粘贴描述文字最省钱，识图功能仅在无法复制时使用。")
