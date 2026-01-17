@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import re
 
-st.set_page_config(page_title="房产搬运全能王v3.2", layout="wide")
+st.set_page_config(page_title="Hao Harbour", layout="wide")
 
 API_KEY = "sk-d99a91f22bf340139a335fb3d50d0ef5"
 API_URL = "https://api.deepseek.com/chat/completions"
@@ -35,7 +35,7 @@ def generate_pro_content(text, platform, style):
     res = requests.post(API_URL, headers=headers, json=payload)
     return res.json()['choices'][0]['message']['content']
 
-st.title("🏙️ 房产搬运全能王 v3.2")
+st.title("🏙️ Hao Harbour")
 
 # 输入
 desc_input = st.text_area("粘贴 Description", height=150)
